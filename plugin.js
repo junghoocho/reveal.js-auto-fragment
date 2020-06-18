@@ -26,7 +26,8 @@ class AutoFragmentPlugIn {
         // if initRelative is true, add the data-fragment-index value of the nearest ancestor to init
         if (initRelative) {
             let element = elements[0];
-            while (element.parentNode) {
+            while (element.parentNode && !element.classList.contains('slides')) {
+                console.log(JSON.stringify(element));
                 element = element.parentNode;
                 if (element.hasAttribute("data-fragment-index")) {
                     init += parseInt(element.getAttribute("data-fragment-index"));
