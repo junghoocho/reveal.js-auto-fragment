@@ -10,10 +10,11 @@ class AutoFragmentPlugIn {
         this.id = 'autoFragment';
         // default plugin options
         this.options = {
-            enabled: false,  // by default, auto fragment is disabled
-            from: 1,         // add auto fragment starting from the first element 
-            init: 10,        // the first element has data-fragment-index = 10
-            step: 10,        // increase data-fragment-index by 10 per each successive element
+            enabled: false, // by default, auto fragment is disabled
+            skip: 0,        // add fragment class to slide top-level elements, 
+                            // after skipping first "skip" elements
+            indexStart: 10, // data-fragment-index is set to "indexStart" for the first element
+            indexStep: 10,  // and is increased by "indexStep" for subsequence elements
         }
     }
 
@@ -21,16 +22,16 @@ class AutoFragmentPlugIn {
     addFragment(elements, options) {
         if (elements.length === 0)  return;
 
-        let {from, init, initRelative, step} = options;
+        let {skip, indexStart, initRelative, indexStep} = options;
 
-        // if initRelative is true, add the data-fragment-index value of the nearest ancestor to init
+        // if initRelative is true, add the data-fragment-index value of the nearest ancestor to indexStart
         if (initRelative) {
             let element = elements[0];
             while (element.parentNode && !element.classList.contains('slides')) {
                 console.log(JSON.stringify(element));
                 element = element.parentNode;
                 if (element.hasAttribute("data-fragment-index")) {
-                    init += parseInt(element.getAttribute("data-fragment-index"));
+                    indexStart += parseInt(element.getAttribute("data-fragment-index"));
                     break;
                 }
             }
@@ -38,13 +39,13 @@ class AutoFragmentPlugIn {
         
         let i = 0;
         for (let element of elements) {
-            // add fragment class to the element starting from "from"
-            if (++i >= from && !element.classList.contains("fragment")) {
+            // add fragment class to the element after skipping the first "skip" elements
+            if (++i > skip && !element.classList.contains("fragment")) {
                 element.classList.add("fragment");
             }
             // add data-fragment-index attribute to the element
             if (!element.hasAttribute("data-fragment-index")) {
-                element.setAttribute("data-fragment-index", init + (i-1)*step);
+                element.setAttribute("data-fragment-index", indexStart + (i-1)*indexStep);
             }
         }
     }
@@ -57,38 +58,34 @@ class AutoFragmentPlugIn {
         // get data-auto-fragment attribute
         let attr = element.getAttribute("data-auto-fragment");
         element.removeAttribute("data-auto-fragment");
-        if (attr === "") {
-            // if it is an empty attribute, we just enable auto-fragment
-            options.enabled = true;
-            return;
-        } else if (attr === "false" || attr === "0") {
+        options.enabled = true;
+
+        // if empty attribute, we we done
+        if (attr === "") return;
+
+        // if attribute value is false, disable auto-fragment and we are done
+        if (attr === "false") {
             options.enabled = false;
             return;
         }
 
         // parse the attribute value. expected format: "int,int,int"
         let values = attr.split(",").map(v => v.trim());
-        options.enabled = true;
         if (values.length >= 1 && values[0].length > 0) {
-            let from = parseInt(values[0]);
-            if (from === 0) {
-                options.enabled = false;
-            } else {
-                options.from = from;
-            }
+            options.skip = parseInt(values[0]);
         }
         if (values.length >= 2 && values[1].length > 0) {
-            // if the second "init" value is prefixed with '+'
-            // it should be relative to the data-fragment-index value of its nearest ancester
+            // if the second "indexStart" value is prefixed with '+'
+            // the value is relative to the data-fragment-index of its nearest ancestor
             if (values[1][0] === '+') {
                 options.initRelative = true;
             } else {
                 options.initRelative = false;
             }
-            options.init = parseInt(values[1]);
+            options.indexStart = parseInt(values[1]);
         }
         if (values.length >= 3 && values[2].length > 0) {
-            options.step = parseInt(values[2]);
+            options.indexStep = parseInt(values[2]);
         }
     }
 
